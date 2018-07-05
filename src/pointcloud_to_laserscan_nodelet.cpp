@@ -139,7 +139,6 @@ namespace pointcloud_to_laserscan
 
   void PointCloudToLaserScanNodelet::cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg)
   {
-
     //build laserscan output
     sensor_msgs::LaserScan output;
     output.header = cloud_msg->header;
@@ -218,6 +217,11 @@ namespace pointcloud_to_laserscan
                       *iter_z);
         continue;
       }
+      else if (range > range_max_)
+      {
+	// skip updating output.ranges
+	continue;
+      }
 
       double angle = atan2(*iter_y, *iter_x);
       if (angle < output.angle_min || angle > output.angle_max)
@@ -228,8 +232,14 @@ namespace pointcloud_to_laserscan
 
       //overwrite range at laserscan ray if new range is smaller
       int index = (angle - output.angle_min) / output.angle_increment;
-      if (range < output.ranges[index])
+      //if (range < output.ranges[index])
+      if (std::numeric_limits<double>::infinity() == output.ranges[index])
       {
+	output.ranges[index] = range;
+      }
+      else if (range > output.ranges[index])
+      {
+	//ROS_FATAL("Prev:%lf Curr:%lf", output.ranges[index], range);
         output.ranges[index] = range;
       }
 
